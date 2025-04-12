@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wolverine Alpha - Prediction</title>
+  <style>
+    /* Base Styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    body {
+      background-color: #0D1117;
+      color: #FFFFFF;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+
+    /* Layout Components */
+    .dashboard {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #1E2D3D;
+      color: #4D5D6D;
+      padding: 4px 8px;
+      border-bottom: 1px solid #4D5D6D;
+    }
+
+    .status-group {
+      display: flex;
+      gap: 16px;
+    }
+
+    .status-active { color: #4ADE80; }
+    .status-warning { color: #FACC15; }
+    .status-danger { color: #F87171; }
+    .status-info { color: #60A5FA; }
+
+    /* Command Line */
+    .command-line {
+      display: flex;
+      align-items: center;
+      background-color: #0D1117;
+      border-bottom: 1px solid #1E2D3D;
+      padding: 4px 8px;
+    }
+
+    .command-prompt, .command-arrow {
+      color: #FACC15;
+      margin-right: 8px;
+    }
+
+    .command-arrow { color: white; }
+
+    .command-input {
+      background-color: #0D1117;
+      color: white;
+      border: none;
+      flex: 1;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .version-info {
+      color: #4D5D6D;
+      font-size: 0.75rem;
+      margin-left: 8px;
+    }
+
+    /* Prediction Info Section */
+    .prediction-info {
+      background-color: #1E2D3D;
+      padding: 16px;
+      border: 1px solid #4D5D6D;
+    }
+
+    .prediction-title {
+      color: #FACC15;
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      font-weight: bold;
+    }
+
+    .prediction-description {
+      color: #FFFFFF;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .prediction-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .metric-card {
+      background-color: #0D1117;
+      padding: 12px;
+      border: 1px solid #4D5D6D;
+    }
+
+    .metric-label {
+      color: #4D5D6D;
+      font-size: 0.75rem;
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      color: #FFFFFF;
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+
+    .metric-value.green { color: #4ADE80; }
+    .metric-value.red { color: #F87171; }
+
+    /* Graph Section */
+    .graph-section {
+      background-color: #1E2D3D;
+      padding: 16px;
+      border: 1px solid #4D5D6D;
+    }
+
+    .graph-container {
+      height: 300px;
+      margin-top: 16px;
+      position: relative;
+    }
+
+    .graph-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    .legend-label {
+      color: #4D5D6D;
+      font-size: 0.75rem;
+    }
+
+    /* Function Keys */
+    .function-keys {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      background-color: #1E2D3D;
+      font-size: 0.75rem;
+      border-top: 1px solid #4D5D6D;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    .function-key {
+      padding: 4px;
+      text-align: center;
+      border-right: 1px solid #4D5D6D;
+    }
+
+    .function-key:last-child { border-right: none; }
+
+    .key-label { color: #4D5D6D; }
+    .key-function { color: #FACC15; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track { background: #0d1117; }
+    ::-webkit-scrollbar-thumb { background: #1e2d3d; }
+    ::-webkit-scrollbar-thumb:hover { background: #4d5d6d; }
+
+    /* Focus States */
+    *:focus {
+      outline: none;
+      box-shadow: 0 0 0 1px #4d5d6d;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(13, 17, 23, 0.8);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal {
+      background-color: #1E2D3D;
+      border: 1px solid #4D5D6D;
+      padding: 20px;
+      width: 450px;
+      position: relative;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      color: #FACC15;
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+
+    .modal-close {
+      color: #4D5D6D;
+      cursor: pointer;
+      font-size: 1.25rem;
+    }
+
+    .modal-content { color: #FFFFFF; }
+
+    .address-label {
+      color: #4D5D6D;
+      margin-bottom: 8px;
+    }
+
+    .address-box {
+      background-color: #0D1117;
+      border: 1px solid #4D5D6D;
+      padding: 8px;
+      color: #FFFFFF;
+      font-family: inherit;
+      width: 100%;
+      box-sizing: border-box;
+      user-select: all;
+    }
+
+    .input-box {
+      background-color: #0D1117;
+      border: 1px solid #4D5D6D;
+      padding: 8px;
+      color: #FFFFFF;
+      font-family: inherit;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 16px;
+    }
+
+    .input-box:focus {
+      outline: none;
+      border-color: #FACC15;
+    }
+
+    .error-message {
+      color: #F87171;
+      font-size: 0.75rem;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+
+    /* Button Styles */
+    .withdraw-button {
+      background-color: #FACC15;
+      color: #0D1117;
+      border: none;
+      padding: 8px 16px;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 16px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .withdraw-button:disabled {
+      background-color: #4D5D6D;
+      cursor: not-allowed;
+    }
+
+    .withdraw-button.loading {
+      background-color: #4D5D6D;
+      cursor: wait;
+    }
+
+    .withdraw-button.loading::after {
+      content: '';
+      width: 16px;
+      height: 16px;
+      border: 2px solid #FACC15;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+      margin-left: 8px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Notification */
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #1E2D3D;
+      color: #FACC15;
+      padding: 12px 24px;
+      border: 1px solid #4D5D6D;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      z-index: 3000;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: opacity 0.3s, transform 0.3s;
+    }
+
+    .notification.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Top Status Bar -->
+    <div class="status-bar">
+      <div class="status-group">
+        <span>CONN: <span class="status-active">ACTIVE</span></span>
+        <span>LATENCY: <span id="latency" class="status-active">Loading...</span></span>
+      </div>
+      <div class="status-group">
+        <span>USDC: <span id="usdcBalance" class="status-info">Loading...</span></span>
+        <span>BTC: <span id="btcPrice" class="status-active">Loading...</span></span>
+        <span>SOL: <span id="solPrice" class="status-active">Loading...</span></span>
+        <span>TAO: <span id="taoPrice" class="status-active">Loading...</span></span>
+        <span class="datetime"></span>
+      </div>
+    </div>
+
+    <!-- Command Line -->
+    <div class="command-line">
+      <span class="command-prompt">PRED</span>
+      <span class="command-arrow">&gt;</span>
+      <input type="text" placeholder="Enter command..." class="command-input">
+      <div class="version-info">WOLVERINE ALPHA 1.0</div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Prediction Info Section -->
+      <div class="prediction-info">
+        <h1 class="prediction-title" id="predictionTitle">Loading...</h1>
+        <p class="prediction-description" id="predictionDescription">Loading...</p>
+        <div class="prediction-metrics">
+          <div class="metric-card">
+            <div class="metric-label">Weighted Prediction</div>
+            <div class="metric-value" id="weightedPrediction">Loading...</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Community Prediction</div>
+            <div class="metric-value" id="communityPrediction">Loading...</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Market Price</div>
+            <div class="metric-value" id="marketPrice">Loading...</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Resolution Date</div>
+            <div class="metric-value" id="resolutionDate">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Graph Section -->
+      <div class="graph-section">
+        <h2 class="prediction-title">Historical Data</h2>
+        <div class="graph-container" id="predictionGraph">
+          <!-- Graph will be rendered here -->
+        </div>
+        <div class="graph-legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #4ADE80;"></div>
+            <span class="legend-label">Weighted Prediction</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: #60A5FA;"></div>
+            <span class="legend-label">Market Price</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Function Keys -->
+    <div class="function-keys">
+      <div class="function-key" id="f1Key" style="cursor: pointer;">
+        <div class="key-label">F1</div>
+        <div class="key-function">LOG IN</div>
+      </div>
+      <div class="function-key" id="f2Key" style="cursor: pointer;">
+        <div class="key-label">F2</div>
+        <div class="key-function">DEPOSIT</div>
+      </div>
+      <div class="function-key" id="f3Key" style="cursor: pointer;">
+        <div class="key-label">F3</div>
+        <div class="key-function">WITHDRAW</div>
+      </div>
+      <div class="function-key" id="f4Key" style="cursor: pointer;">
+        <div class="key-label">F4</div>
+        <div class="key-function">REFRESH</div>
+      </div>
+      <div class="function-key" id="f5Key" style="cursor: pointer;">
+        <div class="key-label">F5</div>
+        <div class="key-function">FETCH</div>
+      </div>
+      <div class="function-key" id="f6Key" style="cursor: pointer;">
+        <div class="key-label">F6</div>
+        <div class="key-function">SORT</div>
+      </div>
+      <div class="function-key" id="f7Key" style="cursor: pointer;">
+        <div class="key-label">F7</div>
+        <div class="key-function">FILTER</div>
+      </div>
+      <div class="function-key" id="f8Key" style="cursor: pointer;">
+        <div class="key-label">F8</div>
+        <div class="key-function">SEARCH</div>
+      </div>
+      <div class="function-key" id="f9Key" style="cursor: pointer;">
+        <div class="key-label">F9</div>
+        <div class="key-function">IMPORT</div>
+      </div>
+      <div class="function-key" id="f10Key" style="cursor: pointer;">
+        <div class="key-label">F10</div>
+        <div class="key-function">EXPORT</div>
+      </div>
+      <div class="function-key" id="f11Key" style="cursor: pointer;">
+        <div class="key-label">F11</div>
+        <div class="key-function">SETTINGS</div>
+      </div>
+      <div class="function-key" id="f12Key" style="cursor: pointer;">
+        <div class="key-label">F12</div>
+        <div class="key-function">EXIT</div>
+      </div>
+    </div>
+
+    <!-- Deposit Modal -->
+    <div class="modal-overlay" id="depositModal">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">DEPOSIT</div>
+          <div class="modal-close" id="closeDepositModal">×</div>
+        </div>
+        <div class="modal-content">
+          <div class="address-label">USDC (SOL)</div>
+          <div class="address-box" id="depositAddress">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div class="modal-overlay" id="withdrawModal">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">WITHDRAW</div>
+          <div class="modal-close" id="closeWithdrawModal">×</div>
+        </div>
+        <div class="modal-content">
+          <div class="address-label" id="availableBalance">Loading balance...</div>
+          <div class="address-label">USDC (SOL) Wallet Address</div>
+          <input type="text" class="input-box" id="withdrawAddress" placeholder="Enter wallet address">
+          <div class="error-message" id="addressError"></div>
+          <div class="address-label">Amount</div>
+          <input type="number" class="input-box" id="withdrawAmount" placeholder="Enter amount" step="0.01" min="0">
+          <div class="error-message" id="amountError"></div>
+          <button class="withdraw-button" id="withdrawButton" disabled>WITHDRAW</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Global state
+      let currentBalance = 0;
+      let predictionId = null;
+
+      // Initialization
+      function initialize() {
+        // Get prediction ID from URL path
+        const pathSegments = window.location.pathname.split('/');
+        predictionId = pathSegments[pathSegments.length - 1];
+
+        if (!predictionId) {
+          window.location.href = '/';
+          return;
+        }
+
+        // Initial data fetch
+        fetchPredictionData(predictionId);
+        fetchHistoricalData(predictionId);
+        
+        // Status updates
+        updateTime();
+        updateLatency();
+        updateAllPrices();
+        
+        // Set up intervals
+        setInterval(updateTime, 1000);
+        setInterval(updateLatency, 600000);
+        setInterval(updateAllPrices, 600000);
+      }
+
+      // Event Listeners
+      function setupEventListeners() {
+        // Function keys
+        document.getElementById('f4Key').onclick = handleRefresh;
+        document.getElementById('f5Key').onclick = handleFetch;
+        document.getElementById('f12Key').onclick = () => window.location.href = '/';
+
+        // Deposit modal
+        document.getElementById('f2Key').onclick = handleDeposit;
+        document.getElementById('closeDepositModal').onclick = () => document.getElementById('depositModal').style.display = 'none';
+        document.getElementById('depositModal').onclick = (e) => {
+          if (e.target === document.getElementById('depositModal')) {
+            document.getElementById('depositModal').style.display = 'none';
+          }
+        };
+
+        // Withdraw modal
+        document.getElementById('f3Key').onclick = handleWithdraw;
+        document.getElementById('closeWithdrawModal').onclick = closeWithdrawModal;
+        document.getElementById('withdrawModal').onclick = (e) => {
+          if (e.target === document.getElementById('withdrawModal')) {
+            closeWithdrawModal();
+          }
+        };
+
+        // Withdraw form validation
+        document.getElementById('withdrawAddress').addEventListener('input', validateWithdrawInput);
+        document.getElementById('withdrawAmount').addEventListener('input', validateWithdrawInput);
+        document.getElementById('withdrawButton').onclick = handleWithdrawSubmit;
+
+        // Keyboard event listeners for F1-F12 keys
+        document.addEventListener('keydown', function(e) {
+          if (e.key.startsWith('F') && !isNaN(e.key.slice(1))) {
+            e.preventDefault();
+            
+            const fKeyNumber = parseInt(e.key.slice(1));
+            const fKeyElement = document.getElementById(`f${fKeyNumber}Key`);
+            
+            if (fKeyElement) {
+              fKeyElement.click();
+            }
+          }
+        });
+      }
+
+      // Status Updates
+      function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        document.querySelector('.datetime').textContent = timeString;
+      }
+
+      function updateLatency() {
+        const latency = Math.floor(Math.random() * 50) + 10;
+        const latencyElement = document.getElementById('latency');
+        latencyElement.textContent = `${latency}ms`;
+        latencyElement.className = 'status-active';
+      }
+
+      function updatePrice(currencies) {
+        fetch(`/api/v1/rates`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const rates = data.response;
+              currencies.forEach(currency => {
+                const element = document.getElementById(`${currency.toLowerCase()}Price`);
+                element.textContent = `$${parseFloat(rates[currency]).toFixed(2)}`;
+                element.className = 'status-active';
+              });
+            } else {
+              currencies.forEach(currency => {
+                document.getElementById(`${currency.toLowerCase()}Price`).textContent = 'Error';
+              });
+            }
+          })
+          .catch(error => {
+            currencies.forEach(currency => {
+              document.getElementById(`${currency.toLowerCase()}Price`).textContent = 'Error';
+            });
+          });
+      }
+
+      function updateUSDCBalance() {
+        fetch('/api/v1/wallet/balance')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const balanceElement = document.getElementById('usdcBalance');
+              balanceElement.textContent = `$${parseFloat(data.response.USDC).toFixed(2)}`;
+              balanceElement.className = 'status-info';
+            } else {
+              document.getElementById('usdcBalance').textContent = 'Error';
+            }
+          })
+          .catch(error => {
+            document.getElementById('usdcBalance').textContent = 'Error';
+          });
+      }
+
+      function updateAllPrices() {
+        updatePrice(['BTC', 'SOL', 'TAO']);
+        updateUSDCBalance();
+      }
+
+      // Prediction Data Management
+      function fetchPredictionData(predictionId) {
+        // Fetch prediction details
+        fetch(`/api/v1/prediction/${predictionId}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const prediction = data.response;
+              document.getElementById('predictionTitle').textContent = prediction.question;
+              document.getElementById('predictionDescription').textContent = prediction.description;
+              document.getElementById('resolutionDate').textContent = new Date(prediction.end_date).toLocaleDateString();
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching prediction data:', error);
+          });
+
+        // Fetch prediction results
+        fetch(`/api/v1/prediction/${predictionId}/result`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const result = data.response;
+              const weightedElement = document.getElementById('weightedPrediction');
+              const communityElement = document.getElementById('communityPrediction');
+
+              weightedElement.textContent = `${(result.weighted * 100).toFixed(2)}%`;
+              weightedElement.className = result.weighted >= 0.5 ? 'metric-value green' : 'metric-value red';
+
+              communityElement.textContent = `${(result.community * 100).toFixed(2)}%`;
+              communityElement.className = result.community >= 0.5 ? 'metric-value green' : 'metric-value red';
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching prediction result:', error);
+          });
+
+        // Fetch market price
+        fetch(`/api/v1/market/${predictionId}/price`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              const marketPriceElement = document.getElementById('marketPrice');
+              const price = parseFloat(data.response.price) * 100;
+              marketPriceElement.textContent = `${price.toFixed(2)}%`;
+              marketPriceElement.className = price >= 50 ? 'metric-value green' : 'metric-value red';
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching market price:', error);
+            const marketPriceElement = document.getElementById('marketPrice');
+            marketPriceElement.textContent = 'N/A';
+          });
+      }
+
+      function fetchHistoricalData(predictionId) {
+        // TODO: Implement historical data fetch when API is available
+        // This will be used to populate the graph
+        const graphContainer = document.getElementById('predictionGraph');
+        graphContainer.innerHTML = '<div style="color: #4D5D6D; text-align: center; padding: 2rem;">Historical data API not yet implemented</div>';
+      }
+
+      // Authentication
+      function checkAuthStatus() {
+        fetch('/auth/session')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('unauthorized');
+            }
+            return response.json();
+          })
+          .then(data => {
+            const f1Key = document.getElementById('f1Key');
+            if (data.success && data.response.authenticated) {
+              f1Key.querySelector('.key-function').textContent = 'ACCOUNT';
+              f1Key.onclick = null;
+            } else {
+              f1Key.querySelector('.key-function').textContent = 'LOG IN';
+              f1Key.onclick = () => window.location.href = '/auth/google';
+            }
+          })
+          .catch(error => {
+            const f1Key = document.getElementById('f1Key');
+            f1Key.querySelector('.key-function').textContent = 'LOG IN';
+            f1Key.onclick = () => window.location.href = '/auth/google';
+          });
+      }
+
+      // Modal Handlers
+      function handleDeposit() {
+        const depositModal = document.getElementById('depositModal');
+        const depositAddress = document.getElementById('depositAddress');
+        
+        depositModal.style.display = 'flex';
+        fetch('/api/v1/wallet/address')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              depositAddress.textContent = data.response.USDC;
+            } else {
+              depositAddress.textContent = 'Error loading address';
+            }
+          })
+          .catch(error => {
+            depositAddress.textContent = 'Error loading address';
+          });
+      }
+
+      function handleWithdraw() {
+        const withdrawModal = document.getElementById('withdrawModal');
+        const availableBalance = document.getElementById('availableBalance');
+        const withdrawButton = document.getElementById('withdrawButton');
+        
+        withdrawModal.style.display = 'flex';
+        fetch('/api/v1/wallet/balance')
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              currentBalance = parseFloat(data.response.USDC);
+              availableBalance.textContent = `${currentBalance.toFixed(2)} USDC (SOL)`;
+              if (currentBalance <= 0) {
+                document.getElementById('amountError').textContent = 'Insufficient balance';
+                withdrawButton.disabled = true;
+              }
+            } else {
+              availableBalance.textContent = 'Error loading balance';
+            }
+          })
+          .catch(error => {
+            availableBalance.textContent = 'Error loading balance';
+          });
+      }
+
+      function validateWithdrawInput() {
+        const address = document.getElementById('withdrawAddress').value.trim();
+        const amount = parseFloat(document.getElementById('withdrawAmount').value);
+        const addressError = document.getElementById('addressError');
+        const amountError = document.getElementById('amountError');
+        const withdrawButton = document.getElementById('withdrawButton');
+        let isValid = true;
+
+        if (!address) {
+          addressError.textContent = 'Address is required';
+          isValid = false;
+        } else if (address.length < 32 || address.length > 44) {
+          addressError.textContent = 'Address must be between 32-44 characters';
+          isValid = false;
+        } else {
+          addressError.textContent = '';
+        }
+
+        if (isNaN(amount) || amount <= 0) {
+          amountError.textContent = 'Amount must be greater than 0';
+          isValid = false;
+        } else if (amount > currentBalance) {
+          amountError.textContent = 'Insufficient balance';
+          isValid = false;
+        } else {
+          amountError.textContent = '';
+        }
+
+        withdrawButton.disabled = !isValid;
+        return isValid;
+      }
+
+      function handleWithdrawSubmit() {
+        if (validateWithdrawInput()) {
+          const address = document.getElementById('withdrawAddress').value.trim();
+          const amount = document.getElementById('withdrawAmount').value;
+          const withdrawButton = document.getElementById('withdrawButton');
+          const amountError = document.getElementById('amountError');
+
+          withdrawButton.classList.add('loading');
+          withdrawButton.disabled = true;
+          withdrawButton.textContent = 'Processing...';
+
+          fetch('/api/v1/wallet/withdraw', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              address: address,
+              amount: amount
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              document.getElementById('withdrawModal').style.display = 'none';
+              document.getElementById('withdrawAddress').value = '';
+              document.getElementById('withdrawAmount').value = '';
+              updateUSDCBalance();
+              showNotification('Withdrawal successful!', 5000);
+            } else {
+              amountError.textContent = data.error || 'Withdrawal failed';
+            }
+          })
+          .catch(error => {
+            amountError.textContent = 'Withdrawal failed';
+          })
+          .finally(() => {
+            withdrawButton.classList.remove('loading');
+            withdrawButton.disabled = false;
+            withdrawButton.textContent = 'WITHDRAW';
+          });
+        }
+      }
+
+      function closeWithdrawModal() {
+        const withdrawModal = document.getElementById('withdrawModal');
+        const withdrawAddress = document.getElementById('withdrawAddress');
+        const withdrawAmount = document.getElementById('withdrawAmount');
+        const addressError = document.getElementById('addressError');
+        const amountError = document.getElementById('amountError');
+        
+        withdrawModal.style.display = 'none';
+        withdrawAddress.value = '';
+        withdrawAmount.value = '';
+        addressError.textContent = '';
+        amountError.textContent = '';
+      }
+
+      // Function Key Handlers
+      function handleRefresh() {
+        if (predictionId) {
+          fetchPredictionData(predictionId);
+          fetchHistoricalData(predictionId);
+        }
+      }
+
+      function handleFetch() {
+        showNotification('Fetching new prediction data...');
+        if (predictionId) {
+          fetchPredictionData(predictionId);
+          fetchHistoricalData(predictionId);
+        }
+      }
+
+      // Utility Functions
+      function showNotification(message, duration = 5000) {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+          notification.classList.remove('show');
+        }, duration);
+      }
+
+      // Initialize the application
+      initialize();
+      setupEventListeners();
+      checkAuthStatus();
+    });
+  </script>
+</body>
+</html>
